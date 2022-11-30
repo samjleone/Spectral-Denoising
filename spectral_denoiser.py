@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from torch import optim
 from tqdm import tqdm
+import warnings
 
 class Spectral_Denoiser:
     # Initialize
@@ -25,7 +26,7 @@ class Spectral_Denoiser:
         f_check = gauss_filter.filter(f_tilde ,method = 'chebyshev')
         return f_check
         
-    def remove_bernoulli_noise(self, f_tilde):
+    def remove_bernoulli_noise(self, f_tilde, method = 'exact', time = 250):
         # Remove Bernoulli Noise 
         # Solves the Dirichlet Problem on the Graph
         # Input: f_tilde: the observed signal
@@ -33,6 +34,7 @@ class Spectral_Denoiser:
         # Output: f_check - the MLE estimate / Solution to the Heat Equation
         
         f_tild_vec = f_tilde.reshape(-1)
+        n = self.G.N
         
         # extrapolate where f_tilde is zero and nonzero
         I = np.where(f_tild_vec != 0)
@@ -40,23 +42,55 @@ class Spectral_Denoiser:
         sz_I = len(I[0])
         sz_Ic = len(Ic[0])
         
-        # create relevant matrices
-        Lap = self.G.L.todense()
+        # get Adjacency matrix
+        
         Adj = self.G.A.todense()*1
-        subLap = Lap[Ic][:,Ic].reshape(sz_Ic,sz_Ic)
-        subAdj = Adj[Ic][:,I].reshape(sz_Ic, sz_I)
-        f_tild_I = f_tild_vec[I]
         
-        # diffuse over the boundary and find the inverse
-        delta = np.linalg.solve(subLap,(subAdj@f_tild_I).reshape(-1,1))
-        delta = np.array(delta).reshape(-1)
-        f_check = f_tild_vec.copy()
-        
-        # Impute corresponding Indices
-        for i in range(sz_Ic):
-            f_check[Ic[0][i]] = delta[i]
+        if method == 'exact':
+            if sz_I > 10000:
+                warnings.warn("Approximation is recommended for large problems")
+            
+            # create relevant matrices
+            Lap = self.G.L.todense()
+
+            subLap = Lap[Ic][:,Ic].reshape(sz_Ic,sz_Ic)
+            subAdj = Adj[Ic][:,I].reshape(sz_Ic, sz_I)
+            f_tild_I = f_tild_vec[I]
+
+            # diffuse over the boundary and find the inverse
+            delta = np.linalg.solve(subLap,(subAdj@f_tild_I).reshape(-1,1))
+            delta = np.array(delta).reshape(-1)
+            f_check = f_tild_vec.copy()
+
+            # Impute corresponding Indices
+            for i in range(sz_Ic):
+                f_check[Ic[0][i]] = delta[i]
+                
+        elif method == 'approximate':
+            x = f_tild_vec.copy()
+            # initialize walk matrix
+            P = np.zeros((n,n))
+            for i in range(n):
+                if f_tild_vec[i] != 0:
+                    # Stabilize at the known vertices
+                    P[i,i] = 1
+                else:
+                    # Diffuse Otherwise
+                    P[i,:] = Adj[i,:]/np.sum(Adj[i,:])
+            
+            # iterate
+            for iter in tqdm(range(time)):
+                x_prev = x.copy()
+                x = P@x
+                if np.linalg.norm(x_prev-x) < 1e-4:
+                    break
+                    
+            f_check = x
+        else:
+            raise Exception("Methods are 'approximate' or 'exact'")
             
         return f_check
+    
     
     def remove_uniform_noise(self, f_tilde, lr = 1, alpha = 1, beta = 1, gamma = 1, MAX_ITER = 500):
         
@@ -116,13 +150,16 @@ class Spectral_Denoiser:
             
             # f is the supposed set of ratios and will be distributed in [0,1]
             f = signal/z
-            KL = uniform_L2(f)
+            if gamma > 0:
+                KL = uniform_L2(f)
+            else:
+                KL = 0
             
             # add the respective (weighted) parts of the error
             return alpha_ * smoothness_prior + beta_ * noise_prob + gamma_ * KL
       
         # initialize our tensor 
-        x = torch.tensor(signal.clone(), requires_grad = True)
+        x = torch.tensor(signal.clone().detach(), requires_grad = True)
         opt = optim.Adam([x], lr = lr)
         
         # Do the corresponding optimization
