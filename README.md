@@ -13,3 +13,5 @@ Code can be found in spectral_denoiser.py with examples in examples.ipynb. A typ
   f_estimate = denoiser.remove_uniform_noise(f_observed)
   
  Where G is a pygsp graph and f_observed is an array defined on the vertices of G.
+
+ Proofs of relevant methods are found in Filter_Design_for_Spectral_Denoising.pdf
