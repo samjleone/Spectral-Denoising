@@ -170,7 +170,7 @@ def compare_denoised_signal(sig_true, sig_noisy, sig_denoised):
     # Calculate the MSE between signal (denoised) and sig_true
     mse2 = np.mean((sig_denoised - sig_true)**2)
     # Add a scatter plot of sig_denoised vs. sig_true on the second subplot
-    axs[1].scatter(sig_denoised.flatten(), sig_true.flatten(), s=1, alpha=0.1)
+    axs[1].scatter(sig_true.flatten(), sig_denoised.flatten(), s=1, alpha=0.1)
     axs[1].set_xlabel("sig_true")
     axs[1].set_ylabel("sig_denoised")
     axs[1].set_title(f"Scatter plot with MSE={mse2:.2f}")
