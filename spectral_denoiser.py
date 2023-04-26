@@ -225,10 +225,10 @@ class Spectral_Denoiser:
 
             for i in range(n):
                 Uniform_Enforcer_Matrix[i,i] = - 1/theta_tilde_sub[i]
-               
+
 
             concave_gradient = (1/np.abs(x_k)).reshape(-1,1)
-            x_k_plus_1 = qp(matrix(L_sub), matrix(concave_gradient), matrix(Uniform_Enforcer_Matrix), matrix(Uniform_Enforcer_Vector))['x']
+            x_k_plus_1 = qp(matrix(L_sub.astype(np.double)), matrix(concave_gradient), matrix(Uniform_Enforcer_Matrix), matrix(Uniform_Enforcer_Vector))['x']
             
             return np.array(x_k_plus_1).reshape(-1,1)
         
