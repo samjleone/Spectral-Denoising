@@ -96,13 +96,13 @@ def add_noise(adata, noise_type='gaussian', **kwargs):
 
     return adata_with_noise
 
-def get_graph(adata):
+def get_graph(adata, k=10):
     # Perform PCA to reduce the dimensionality
     sc.tl.pca(adata)
 
     # Compute k-nearest neighbors and Gaussian kernel weights
-    k = 10  # You can change this value to the desired number of neighbors
-    sc.pp.neighbors(adata, n_neighbors=k, use_rep='X_pca', method='umap', metric='euclidean', knn=True)
+    # k = 10  # You can change this value to the desired number of neighbors
+    sc.pp.neighbors(adata, n_neighbors=k, use_rep='X_pca', method='gauss', metric='euclidean', knn=True)
 
     # The resulting k-NN graph is stored in the AnnData object's 'connectivities' attribute
     graph = adata.uns['neighbors']['connectivities']
