@@ -16,6 +16,7 @@ class Spectral_Denoiser:
     def __init__(self, Graph = None):
         if Graph != None:
             self.G = Graph
+            self.P = None
         else:
             raise ValueError("Graph Required")
             
@@ -74,6 +75,30 @@ class Spectral_Denoiser:
         gauss_filter = pygsp.filters.Filter(self.G, lambda x : 1/(1 + tau * x))
         f_check = gauss_filter.filter(f_tilde ,method = 'chebyshev')
         return f_check
+    
+    def local_average(self, f_tilde, t=1):
+        
+        if self.P is None:
+            G = self.G
+            A = G.W.todense()
+            P = np.diag(1/np.array(np.sum(A,axis=0))[0])@A
+            self.P = P
+            
+        for t_ in range(t):
+            f_tilde = self.P@f_tilde
+        
+        return np.array(f_tilde)
+    
+    def nuclear_norm_appx(self, f_tilde, tau):
+        restored = np.zeros(f_tilde.shape)
+        for i in range(f_tilde.shape[2]):
+            M = f_tilde[:,:,i]
+            nrow = M.shape[0]
+            ncol = M.shape[1]
+            U, S, VT = np.linalg.svd(M)
+            S_ = [np.sign(s)*max(0, np.abs(s) - tau) for s in S]
+            restored[:,:,i] = U@np.diag(S_)@VT
+        return restored
     
     def remove_gaussian_noise(self, f_tilde, tau = None):
         # Remove Gaussian Noise
