@@ -5,6 +5,7 @@ import pygsp
 import matplotlib.pyplot as plt
 import spectral_denoiser
 import magic
+import phate
 
 def generate_blob_data(n_cells=1000, n_genes=500, n_clusters=5, cluster_std=8.0, center_box=(-5, 5)):
     # Generate single-cell RNA-seq data using blobs
@@ -117,11 +118,11 @@ def get_graph_magic(adata):
     magic_op = magic.MAGIC()
     magic_op.fit(adata.X)
     pygsp_graph = magic_op.graph.to_pygsp()
-    sc.tl.pca(adata)
-    coordinates = adata.obsm['X_pca'][:, :2]
+    phate_op = phate.PHATE()
+    data_phate = phate_op.fit_transform(adata)
+    coordinates = data_phate
     pygsp_graph.set_coordinates(coordinates)
     return pygsp_graph
-
 
 def visuallize_graph(pygsp_graph):
     ## visuallize
