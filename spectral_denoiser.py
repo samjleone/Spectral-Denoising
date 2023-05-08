@@ -202,7 +202,12 @@ class Spectral_Denoiser:
 
         numerator = (n-1)*order_2 - np.trace(Lap)*order_1
         denominator = (np.linalg.norm(Lap)**2)*order_1 - np.trace(Lap)*order_2
-        return numerator/denominator
+        prop_tau = numerator/denominator
+        
+        if prop_tau > 0:
+            return prop_tau
+        else:
+            return 1
     
     def estimate_eta_for_uniform(self, tilde_samples, Linv = None):
         Lap = self.G.L.todense()
