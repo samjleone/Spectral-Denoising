@@ -1,8 +1,8 @@
 import scipy
 import pygsp
 import numpy as np
-import torch
-from torch import optim
+# import torch
+# from torch import optim
 from tqdm import tqdm
 import warnings
 import cvxopt as opt
@@ -201,7 +201,7 @@ class Spectral_Denoiser:
 
         return numerator/denominator
     
-    def remove_uniform_noise(self, theta_tilde, max_iter = 10, true_signal = None, max_iter_qp=20, epsilon = 1e-3, bump=1, eta=None):
+    def remove_uniform_noise(self, theta_tilde, max_iter = 10, true_signal = None, max_iter_qp=20, epsilon = 1e-3, bump=1, eta=None, method = 'ccp', lr = 1, verbose=False):
         
         Lap = self.G.L.todense()
         n = Lap.shape[0]
@@ -210,7 +210,8 @@ class Spectral_Denoiser:
 
         if eta == None:
             eta = self.estimate_eta_for_uniform(theta_tilde)
-            print(eta)
+            if verbose == True:
+                print("Value of eta: " + str(eta))
         
         def convex_subroutine(L_sub, theta_tilde_sub, x_k):
             options['show_progress'] = False
@@ -225,7 +226,6 @@ class Spectral_Denoiser:
 
             for i in range(n):
                 Uniform_Enforcer_Matrix[i,i] = - 1/theta_tilde_sub[i]
-
 
             concave_gradient = (1/np.abs(x_k)).reshape(-1,1)
             x_k_plus_1 = qp(matrix(L_sub.astype(np.double)), matrix(concave_gradient), matrix(Uniform_Enforcer_Matrix), matrix(Uniform_Enforcer_Vector))['x']
@@ -254,23 +254,41 @@ class Spectral_Denoiser:
 
             prev_cost = primal_cost(x0)
             relative_stopping_criteria = primal_cost(x0)*epsilon
-            scaled_bump = bump*np.max(x0)
-            x_k = x0 + np.ones((n,1))*scaled_bump*np.sign(x0)
+            for i in range(n):
+                x0[i] = x0[i] + bump*np.sign(x0[i])
             losses = []
+            x_k = x0
             
             i = 0
             delta = relative_stopping_criteria + 1
             new_cost = prev_cost + relative_stopping_criteria + 1
             
-            while (i < max_iter) and delta > relative_stopping_criteria:
+            while (i < max_iter) and np.abs(delta) > relative_stopping_criteria:
+          
                 prev_cost = new_cost
                 losses.append(primal_cost(x_k))
-                x_k = convex_subroutine(eta*Lap, noisy_signal, x_k)
+                
+                if method == 'ccp':
+                    x_k = convex_subroutine(eta*Lap, noisy_signal, x_k)
+                    
+                elif method == 'pg':
+                    x_k = x_k.reshape(-1,1)
+                    grad = 2*eta*Lap@x_k + 1/x_k
+                    x_k = x_k - lr*grad
+                    for j in range(n):
+                        if noisy_signal[j] == 0:
+                            x_k[j] = 0
+                        elif x_k[j]/noisy_signal[j] < 1:
+                            x_k[j] = noisy_signal[j]
+                    
+                else:
+                    raise ValueError("Method should be ccp (Convex-Concave Procedure) or pg (Projected Gradient)")
                 new_cost = primal_cost(x_k)
                 delta = prev_cost - new_cost
                 i += 1
-            
-            print(f"Final Cost: {new_cost} Achieved in {i} Iterations")
+                
+            if verbose == True:
+                print(f"Final Cost: {new_cost} Achieved in {i} Iterations")
             restored_signals[:,signal_index] = x_k.reshape(-1)
             
         return restored_signals
