@@ -202,7 +202,7 @@ def denoise_experiment(pygsp_graph, signal_noisy, noise_type):
     elif noise_type == 'bernoulli':
         signal_denoised = Denoising_Machine.remove_bernoulli_noise(signal_noisy, method = 'approximate', time = 500)
     elif noise_type == 'uniform':
-        signal_denoised = Denoising_Machine.remove_uniform_noise(signal_noisy, method='pg')
+        signal_denoised = Denoising_Machine.remove_uniform_noise(signal_noisy, method='pg', lr=0.1, max_iter=500)
     elif noise_type == 'bandlimit_low':
         signal_denoised = Denoising_Machine.bandlimit_low(signal_noisy)
     elif noise_type == 'bandlimit_high':
