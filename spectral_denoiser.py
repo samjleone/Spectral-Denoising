@@ -26,7 +26,11 @@ class Spectral_Denoiser:
         # tau: eta * sigma^2 is a smoothing parameter
         # output: MLE original signal
 
-        if omega > -1:
+        if k == -1:
+            if omega == -1:
+                G.estimate_lmax()
+                omega = G.lmax*0.1
+                
             f_tilde = f_tilde.reshape(-1)
             gauss_filter = pygsp.filters.Filter(self.G, lambda x : 1*(x <= omega))
             f_check = gauss_filter.filter(f_tilde ,method = 'chebyshev')
