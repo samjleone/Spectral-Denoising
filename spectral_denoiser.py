@@ -231,15 +231,9 @@ class Spectral_Denoiser:
 
         return numerator/denominator
     
-    def remove_uniform_noise(self, theta_tilde, max_iter = 10, true_signal = None, max_iter_qp=20, epsilon = 1e-3, bump=1, eta=None, method = 'ccp', lr = 1, verbose=False):
+    def remove_uniform_noise(self, theta_tilde, max_iter = 200, true_signal = None, max_iter_qp=20, epsilon = 1e-3, bump=1, eta=None, method = 'ccp', lr = 1, verbose=False):
         
-        Lap = self.G.L.todense()
-        
-        I = np.where(theta_tilde.reshape(-1,1) != 0)[0]
-        m = len(I)
-        LI = Lap[I][:,I]
-        LI = LI.reshape(m,m)
-        
+        Lap = self.G.L.todense()  
         n = Lap.shape[0]
 
         # perform method of moments estimation for eta
@@ -283,9 +277,14 @@ class Spectral_Denoiser:
 
         restored_signals = np.zeros((theta_tilde.shape[0],theta_tilde.shape[1]))
         # print(theta_tilde.shape[1])
-        for signal_index in np.arange(theta_tilde.shape[1]):
+        for signal_index in tqdm(np.arange(theta_tilde.shape[1])):
             
             noisy_signal = theta_tilde[:,signal_index].reshape(-1,1)
+            
+            I = np.where(noisy_signal.reshape(-1,1) != 0)[0]
+            m = len(I)
+            LI = Lap[I][:,I]
+            LI = LI.reshape(m,m)
 
             x0 = 1.05*noisy_signal
 
