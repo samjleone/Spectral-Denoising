@@ -30,8 +30,8 @@ pd.DataFrame(adata_uniform.X).to_csv(save_folder + 'noisy_uniform.csv', index=Fa
 pygsp_graph = get_graph_magic(adata_gaussian)
 sig_denoised_gaussian = denoise_experiment(pygsp_graph, adata_gaussian.X, 'gaussian')
 sig_denoised_gaussian_local_avg = denoise_experiment(pygsp_graph, adata_gaussian.X, 'local_average')
-pd.DataFrame(sig_denoised_gaussian).to_csv(save_folder + 'denoised_bernoulli.csv', index=False)
-pd.DataFrame(sig_denoised_gaussian_local_avg).to_csv(save_folder + 'denoised_bernoulli_local_avg.csv', index=False)
+pd.DataFrame(sig_denoised_gaussian).to_csv(save_folder + 'denoised_gaussian.csv', index=False)
+pd.DataFrame(sig_denoised_gaussian_local_avg).to_csv(save_folder + 'denoised_gaussian_local_avg.csv', index=False)
 
 # pygsp_graph = get_graph(adata_bernoulli)
 pygsp_graph = get_graph_magic(adata_bernoulli)
@@ -43,6 +43,6 @@ pd.DataFrame(sig_denoised_bernoulli_local_avg).to_csv(save_folder + 'denoised_be
 pygsp_graph = get_graph_magic(adata_uniform)
 sig_denoised_uniform = denoise_experiment(pygsp_graph, adata_uniform.X, 'uniform')
 sig_denoised_uniform_local_avg = denoise_experiment(pygsp_graph, adata_uniform.X, 'local_average')
-pd.DataFrame(sig_denoised_uniform).to_csv(save_folder + 'denoised_bernoulli.csv', index=False)
-pd.DataFrame(sig_denoised_uniform_local_avg).to_csv(save_folder + 'denoised_bernoulli_local_avg.csv', index=False)
+pd.DataFrame(sig_denoised_uniform).to_csv(save_folder + 'denoised_uniform.csv', index=False)
+pd.DataFrame(sig_denoised_uniform_local_avg).to_csv(save_folder + 'denoised_uniform_local_avg.csv', index=False)
 
