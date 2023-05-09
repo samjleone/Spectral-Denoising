@@ -5,6 +5,7 @@ import pygsp
 import matplotlib.pyplot as plt
 import spectral_denoiser
 import magic
+import phate
 
 def generate_blob_data(n_cells=1000, n_genes=500, n_clusters=5, cluster_std=8.0, center_box=(-5, 5)):
     # Generate single-cell RNA-seq data using blobs
@@ -97,6 +98,45 @@ def add_noise(adata, noise_type='gaussian', **kwargs):
 
     return adata_with_noise
 
+
+def add_noise_no_plot(adata, noise_type='gaussian', **kwargs):
+    """
+    Plots the input adata and adata with noise, along with their histograms and scatter plot.
+    
+    Parameters:
+    adata (anndata.AnnData): Input adata object.
+    noise_type (str): Type of noise to add. 'gaussian' (default), 'uniform', or 'bernoulli'.
+    **kwargs: Additional arguments for the chosen noise type.
+        - For Gaussian noise: mean (float), std (float), noise_scale (float)
+        - For uniform noise: low (float), high (float)
+        - For Bernoulli noise: probability (float)
+    
+    Returns:
+    adata_with_noise (anndata.AnnData): adata with added noise
+    """
+    # Make a copy of the input data
+    adata_with_noise = adata.copy()
+    
+    # Add noise based on the chosen noise type
+    if noise_type == 'gaussian':
+        mean = kwargs.get('mean', 0)
+        std = kwargs.get('std', 1)
+        noise_scale = kwargs.get('noise_scale', 1)
+        gaussian_noise = np.random.normal(loc=mean, scale=std*noise_scale, size=adata.X.shape)
+        adata_with_noise.X += gaussian_noise
+    elif noise_type == 'uniform':
+        low = kwargs.get('low', 0)
+        high = kwargs.get('high', 1)
+        uniform_noise = np.random.uniform(low=low, high=high, size=adata.X.shape)
+        adata_with_noise.X *= uniform_noise
+    elif noise_type == 'bernoulli':
+        probability = kwargs.get('probability', 0.5)
+        bernoulli_noise = np.random.binomial(n=1, p=probability, size=adata.X.shape)
+        adata_with_noise.X *= bernoulli_noise
+    else:
+        raise ValueError(f"Invalid noise type: {noise_type}")
+    return adata_with_noise
+
 def get_graph(adata, k=10):
     # Perform PCA to reduce the dimensionality
     sc.tl.pca(adata)
@@ -117,11 +157,11 @@ def get_graph_magic(adata):
     magic_op = magic.MAGIC()
     magic_op.fit(adata.X)
     pygsp_graph = magic_op.graph.to_pygsp()
-    sc.tl.pca(adata)
-    coordinates = adata.obsm['X_pca'][:, :2]
-    pygsp_graph.set_coordinates(coordinates)
+    # phate_op = phate.PHATE()
+    # data_phate = phate_op.fit_transform(adata)
+    # coordinates = data_phate
+    # pygsp_graph.set_coordinates(coordinates)
     return pygsp_graph
-
 
 def visuallize_graph(pygsp_graph):
     ## visuallize
@@ -163,6 +203,12 @@ def denoise_experiment(pygsp_graph, signal_noisy, noise_type):
         signal_denoised = Denoising_Machine.remove_bernoulli_noise(signal_noisy, method = 'approximate', time = 500)
     elif noise_type == 'uniform':
         signal_denoised = Denoising_Machine.remove_uniform_noise(signal_noisy, method='pg')
+    elif noise_type == 'bandlimit_low':
+        signal_denoised = Denoising_Machine.bandlimit_low(signal_noisy)
+    elif noise_type == 'bandlimit_high':
+        signal_denoised = Denoising_Machine.bandlimit_high(signal_noisy)
+    elif noise_type == 'local_average':
+        signal_denoised = Denoising_Machine.local_average(signal_noisy)
     else: raise ValueError('noise type not recognized')
     return signal_denoised
 
