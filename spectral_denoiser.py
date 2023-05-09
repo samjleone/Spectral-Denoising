@@ -116,7 +116,7 @@ class Spectral_Denoiser:
         f_check = gauss_filter.filter(f_tilde ,method = 'chebyshev')
         return f_check
         
-    def remove_bernoulli_noise(self, f_tilde, method = 'exact', time = 250):
+    def remove_bernoulli_noise(self, f_tilde, method = 'exact', time = 250,epsilon=1e-4):
         # Remove Bernoulli Noise 
         # Solves the Dirichlet Problem on the Graph
         # Input: f_tilde: the observed signal
@@ -171,10 +171,10 @@ class Spectral_Denoiser:
                         P[i,:] = Adj[i,:]/np.sum(Adj[i,:])
 
                 # iterate
-                for iter in tqdm(range(time)):
+                for iter in range(time):
                     x_prev = x.copy()
                     x = P@x
-                    if np.linalg.norm(x_prev-x) < 1e-4:
+                    if np.linalg.norm(x_prev-x) < epsilon:
                         break
 
                 f_check = x
@@ -234,6 +234,12 @@ class Spectral_Denoiser:
     def remove_uniform_noise(self, theta_tilde, max_iter = 10, true_signal = None, max_iter_qp=20, epsilon = 1e-3, bump=1, eta=None, method = 'ccp', lr = 1, verbose=False):
         
         Lap = self.G.L.todense()
+        
+        I = np.where(theta_tilde.reshape(-1,1) != 0)[0]
+        m = len(I)
+        LI = Lap[I][:,I]
+        LI = LI.reshape(m,m)
+        
         n = Lap.shape[0]
 
         # perform method of moments estimation for eta
@@ -264,7 +270,8 @@ class Spectral_Denoiser:
         
         def primal_cost(x):
             x = x.reshape(-1,1)
-            return eta*x.T@Lap@x + np.sum(np.log(np.abs(x)))
+            xI = x[I,:]
+            return eta*(xI.T@LI@xI)[0,0]
         
         if true_signal is None:
             print("Truth unknown")
@@ -288,13 +295,13 @@ class Spectral_Denoiser:
                 x0[i] = x0[i] + bump*np.sign(x0[i])
             losses = []
             x_k = x0
-            
+
             i = 0
             delta = relative_stopping_criteria + 1
             new_cost = prev_cost + relative_stopping_criteria + 1
             
             while (i < max_iter) and np.abs(delta) > relative_stopping_criteria:
-          
+                
                 prev_cost = new_cost
                 losses.append(primal_cost(x_k))
                 
@@ -303,7 +310,13 @@ class Spectral_Denoiser:
                     
                 elif method == 'pg':
                     x_k = x_k.reshape(-1,1)
-                    grad = 2*eta*Lap@x_k + 1/x_k
+                    grad = 2*eta*Lap@x_k
+                    for j in range(n):
+                        if x_k[j] != 0:
+                            grad[j] += 1/x_k[j]
+                        else:
+                            grad[j] = 0
+                            
                     x_k = x_k - lr*grad
                     for j in range(n):
                         if noisy_signal[j] == 0:
@@ -318,7 +331,7 @@ class Spectral_Denoiser:
                 i += 1
                 
             if verbose == True:
-                print(f"Final Cost: {new_cost} Achieved in {i} Iterations")
+                print(f"Final Cost: {new_cost} Achieved in {i} Iterations with Delta = {delta}")
             restored_signals[:,signal_index] = x_k.reshape(-1)
             
         return restored_signals
