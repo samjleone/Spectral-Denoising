@@ -207,6 +207,8 @@ def denoise_experiment(pygsp_graph, signal_noisy, noise_type):
         signal_denoised = Denoising_Machine.bandlimit_low(signal_noisy)
     elif noise_type == 'bandlimit_high':
         signal_denoised = Denoising_Machine.bandlimit_high(signal_noisy)
+    elif noise_type == 'local_average':
+        signal_denoised = Denoising_Machine.local_average(signal_noisy)
     else: raise ValueError('noise type not recognized')
     return signal_denoised
 
