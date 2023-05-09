@@ -29,7 +29,7 @@ class Spectral_Denoiser:
         if k == -1:
             if omega == -1:
                 G.estimate_lmax()
-                omega = G.lmax*0.1
+                omega = G.lmax*0.1 
                 
             f_tilde = f_tilde.reshape(-1)
             gauss_filter = pygsp.filters.Filter(self.G, lambda x : 1*(x <= omega))
