@@ -10,7 +10,7 @@ from functools import partialmethod
 tqdm.__init__ = partialmethod(tqdm.__init__, disable=True) 
 
 ## gene x cell. need to transpose
-X = pd.read_csv('data/splatter/truecounts.csv').set_index('Unnamed: 0').to_numpy()
+X = pd.read_csv('data/splatter/cellmeans.csv').set_index('Unnamed: 0').to_numpy()
 save_folder = 'results/splatter/'
 
 adata = sc.AnnData(X=X, dtype=X.dtype)
